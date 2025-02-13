@@ -13,9 +13,6 @@ document("dtlcor")
 require(dtlcor)
 ls(getNamespace("dtlcor"))
 
-# description of parameters
-describe_dtlcor()
-
 # set design parameters
 nsim      = 1000  
 
