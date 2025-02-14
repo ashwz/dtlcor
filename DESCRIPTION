@@ -1,10 +1,10 @@
 Package: dtlcor
-Title: What the Package Does (One Line, Title Case)
+Title: R package of "Multiplicity Control in Oncology Clinical Trials with a Surrogate Endpoint-Based Drop-The-Losers Design"
 Version: 0.0.0.9000
 Authors@R: 
     person("Weibin", "Zhong", , "wzhong3@gmu.edu", role = c("aut", "cre"),
            comment = c(ORCID = "YOUR-ORCID-ID"))
-Description: Drop-the-losers Design with Correlation Adjustment Simulation R Package
+Description: This R package is developed based on the manuscript "Multiplicity Control in Oncology Clinical Trials with a Surrogate Endpoint-Based Drop-The-Losers  Design". It includes functions to calculate the correlation boundary for the correlation between the response rate and the log-rank test statistic for the binary surrogate endpoint and the time-to-event primary endpoint, as well as functions to conduct simulation studies to obtain design operating characteristics. Additionally, it features an R Shiny application for interactive implementation of the design. 
 License: `use_mit_license()`, `use_gpl3_license()` or friends to pick a
     license
 Depends:

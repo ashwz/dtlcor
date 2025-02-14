@@ -1,20 +1,4 @@
 
-# get survival function of non-responder
-get_S0 <- function(mPFS, q, gamma, t){
-    solve_S0 = function(x){
-        S = 1 - pexp(t, log(2) / mPFS)
-        q*x^gamma + (1-q)*x - S
-    }
-    uniroot(solve_S0, interval = c(0, 1), tol = 10^(-6))$root
-}
-
-# get density function of non-responder
-get_f0 <- function(mPFS, q, gamma, t){
-    S0 = get_S0(mPFS, q, gamma, t)
-    f0 = dexp(t, log(2) / mPFS) / (q*gamma*S0^(gamma-1) + (1-q))
-    f0
-}
-
 #' @title Minimum significance level for the final stage under drop-the-losers 
 #' (DTL) design
 #' 
@@ -101,6 +85,22 @@ dtl_app_get_alpha_t = function(n, N, delta, q_seq, gamma_seq, alpha, fix_rho = N
 #' @export
 dtl_app_sim_single <- function(D, N, n, mPFS, q, gamma, delta, drop_rate, enroll, interim_t){
 
+    # get survival function of non-responder
+    get_S0 <- function(mPFS, q, gamma, t){
+        solve_S0 = function(x){
+            S = 1 - pexp(t, log(2) / mPFS)
+            q*x^gamma + (1-q)*x - S
+        }
+        uniroot(solve_S0, interval = c(0, 1), tol = 10^(-6))$root
+    }
+    
+    # get density function of non-responder
+    get_f0 <- function(mPFS, q, gamma, t){
+        S0 = get_S0(mPFS, q, gamma, t)
+        f0 = dexp(t, log(2) / mPFS) / (q*gamma*S0^(gamma-1) + (1-q))
+        f0
+    }
+    
     accr_time = N / enroll # day per arm
 
     q_rep    = rep(q, each = N)
@@ -191,36 +191,6 @@ dtl_app_sim_single <- function(D, N, n, mPFS, q, gamma, delta, drop_rate, enroll
 
 }
 
-# analysis data
-dtl_app_ana <- function(dat_all, interim_t, interim_c){
-
-    t_length     = length(interim_t)
-    dat_WZ       = dat_all$dat_WZ
-    dat_final    = dat_all$dat_final[[length(dat_all$dat_final)]]
-
-    stop_interim = if_else(1 %in% dat_final$arm,
-                           which(dat_WZ[1, 1 + 2*(1:t_length)] > interim_c)[1],
-                           which(dat_WZ[1, 2 + 2*(1:t_length)] > interim_c)[1])
-    stop_interim = if_else(is.na(stop_interim), length(dat_all$dat_final), stop_interim)
-
-
-    I_21  = 2 %in% dat_final$arm
-    rej   = case_when(1 %in% dat_final$arm & !all(dat_WZ[1, 1 + 2*(1:t_length)] <= interim_c) ~ 1,
-                      2 %in% dat_final$arm & !all(dat_WZ[1, 2 + 2*(1:t_length)] <= interim_c) ~ 2,
-                      .default = 0)
-
-    cen_rate  = mean(dat_final$censor!=0)
-    cen_1     = mean(dat_final$censor==1)
-    cen_2     = mean(dat_final$censor==2)
-    dur       = dat_all$dat_final[[stop_interim]]$tt_end[1] - min(dat_final$tt_accr)
-
-    rst = data.frame(t = rbind(interim_t), c = rbind(interim_c), I_21, rej, cen_rate, cen_1, cen_2, dur)
-    rownames(rst) = NULL
-
-    return(rst)
-
-}
-
 #' @title Simulation study for drop-the-losers (DTL) trial.
 #' 
 #' @description Simulation study for a trial based on the DTL design
@@ -254,6 +224,36 @@ dtl_app_sim <- function(nsim, alpha_t,
                         D, N, n, mPFS, q, gamma, delta,
                         drop_rate, enroll, interim_t){
 
+    # analysis data
+    dtl_app_ana <- function(dat_all, interim_t, interim_c){
+        
+        t_length     = length(interim_t)
+        dat_WZ       = dat_all$dat_WZ
+        dat_final    = dat_all$dat_final[[length(dat_all$dat_final)]]
+        
+        stop_interim = if_else(1 %in% dat_final$arm,
+                               which(dat_WZ[1, 1 + 2*(1:t_length)] > interim_c)[1],
+                               which(dat_WZ[1, 2 + 2*(1:t_length)] > interim_c)[1])
+        stop_interim = if_else(is.na(stop_interim), length(dat_all$dat_final), stop_interim)
+        
+        
+        I_21  = 2 %in% dat_final$arm
+        rej   = case_when(1 %in% dat_final$arm & !all(dat_WZ[1, 1 + 2*(1:t_length)] <= interim_c) ~ 1,
+                          2 %in% dat_final$arm & !all(dat_WZ[1, 2 + 2*(1:t_length)] <= interim_c) ~ 2,
+                          .default = 0)
+        
+        cen_rate  = mean(dat_final$censor!=0)
+        cen_1     = mean(dat_final$censor==1)
+        cen_2     = mean(dat_final$censor==2)
+        dur       = dat_all$dat_final[[stop_interim]]$tt_end[1] - min(dat_final$tt_accr)
+        
+        rst = data.frame(t = rbind(interim_t), c = rbind(interim_c), I_21, rej, cen_rate, cen_1, cen_2, dur)
+        rownames(rst) = NULL
+        
+        return(rst)
+        
+    }
+    
     t_length  = length(interim_t)
 
     OF_Design = gsDesign(k = t_length, test.type=1, sfu="OF", alpha = alpha_t, timing = interim_t)
