@@ -80,13 +80,14 @@ dtl_app_get_alpha_t = function(n, N, delta, q_seq, gamma_seq, alpha, fix_rho = N
 #' @return A list including (1) a data frame of response rates of low dose and 
 #' high dose W_1, W_2 and the log-rank test statistics Z_jk at kth interim 
 #' analysis if the jth arm is selected at DTL look; (2) data frames of 
-#' simulated data at interim or final analyses.
+#' simulated data at DTL look; (3) data frames of simulated data at 
+#' interim or final analyses.
 #'                   
 #' @export
 dtl_app_sim_single <- function(D, N, n, mPFS, q, gamma, delta, drop_rate, enroll, interim_t){
-
+    
     # get survival function of non-responder
-    get_S0 <- function(mPFS, q, gamma, t){
+    get_S0 = function(mPFS, q, gamma, t){
         solve_S0 = function(x){
             S = 1 - pexp(t, log(2) / mPFS)
             q*x^gamma + (1-q)*x - S
@@ -102,93 +103,110 @@ dtl_app_sim_single <- function(D, N, n, mPFS, q, gamma, delta, drop_rate, enroll
     }
     
     accr_time = N / enroll # day per arm
-
+    
     q_rep    = rep(q, each = N)
     mPFS_rep = rep(mPFS, each = N)
     lambda_C = -log(1-drop_rate) / 365.25 # censor survival at 1 year equals 1 - drop_rate
-
+    
     ID       = 1:(3*N)
     arm      = rep(0:2, each = N)
-
+    
     Eve_Time = rexp(3*N, log(2) / mPFS_rep)
-
+    
     f0       = apply(cbind(mPFS_rep, q_rep, Eve_Time), 1, function(x){
         get_f0(x[1], x[2], gamma, x[3])
     })
     q_t      = 1 - (1-q_rep)*f0 / dexp(Eve_Time, log(2)/mPFS_rep)
     X        = rbinom(3*N, 1, q_t)
-
+    
     Cen_Time = rexp(3*N, lambda_C)
     tt_accr  = runif(3*N, 0, accr_time)
     tt_eve   = tt_accr + Eve_Time
     tt_cen   = tt_accr + Cen_Time
-
+    
     dat_final_temp = tibble(ID, arm, X, Eve_Time, Cen_Time, tt_accr, tt_eve, tt_cen) %>%
         mutate(censor = case_when(tt_eve < tt_cen ~ 0,
                                   tt_cen <= tt_eve ~ 1),
                tt     = case_when(censor == 0 ~ tt_eve,
                                   censor == 1 ~ tt_cen)) %>%
-        arrange(tt)
-
+        arrange(tt) %>%
+        mutate(Time   = tt - tt_accr,
+               Delta  = if_else(censor == 0, 1, 0))
+    
+    
     # DTL stage
-    dat_DTL = dat_final_temp %>% arrange(tt_accr) %>% filter(arm !=0) %>% group_by(arm) %>% slice(1:n)
-    rst_W   = dat_DTL %>% group_by(arm) %>% summarise(W = mean(X))
-
+    dat_DTL = dat_final_temp %>%
+        arrange(tt_accr) %>% 
+        group_by(arm) %>% 
+        slice(1:n) %>%
+        ungroup() %>%
+        mutate(tt_end = max(tt_accr),
+               censor = if_else(tt_end <= tt, 2, censor),
+               tt     = if_else(censor == 2, tt_end, tt),
+               Time   = tt - tt_accr,
+               Delta  = if_else(censor == 0, 1, 0)) %>%
+        arrange(tt)
+    
+    rst_W   = dat_DTL %>% 
+        filter(arm!=0) %>% 
+        group_by(arm) %>% 
+        summarise(W = mean(X))
+    
     W_names   = c("W_1", "W_2")
     W_dat_all = data.frame(rbind(rst_W$W))
     colnames(W_dat_all) = W_names
-
+    
     if (W_dat_all$W_2 - W_dat_all$W_1 - delta <= 0){
         dat_final_temp_2 = dat_final_temp %>% filter(arm != 2)
     } else {
         dat_final_temp_2 = dat_final_temp %>% filter(arm != 1)
     }
-
+    
     # Final stage
     dat_final_temp_3 = dat_final_temp_2 %>%
         mutate(D_cumsum = cumsum(censor==0))
-
+    
     t_length  = length(interim_t)
     dat_final = list()
     Z_all     = NULL
     for (k in 1:t_length){
-
+        
         D_k = ceiling(D*interim_t[k])
-
+        
         if (max(dat_final_temp_3$D_cumsum) < D_k){
             tt_end = max(dat_final_temp_3$tt)
         } else{
             tt_end = min(dat_final_temp_3$tt[dat_final_temp_3$D_cumsum == D_k])
         }
-
+        
         dat_final[[k]] = dat_final_temp_3 %>%
-            mutate(tt_end = tt_end) %>%
-            mutate(censor = if_else(tt > tt_end, 2, censor),
+            mutate(tt_end = tt_end,
+                   censor = if_else(tt > tt_end, 2, censor),
                    tt     = if_else(censor != 2, tt, tt_end),
                    Time   = tt - tt_accr,
                    Delta  = if_else(censor == 0, 1, 0))
-
+        
         rst_test = logrank_test(Surv(Time, Delta) ~ factor(arm), data = dat_final[[k]])
         Z        = -rst_test@statistic@teststatistic
-
+        
         Z_all = c(Z_all,
                   c(if_else(1 %in% dat_final[[k]]$arm, Z, NA),
                     if_else(2 %in% dat_final[[k]]$arm, Z, NA)))
-
+        
     }
-
+    
     Z_names = apply(expand.grid(1:2, 1:t_length), 1, function(x){
         paste0("Z_", x[1], x[2])
     })
-
+    
     Z_dat_all           = data.frame(rbind(Z_all))
     rownames(Z_dat_all) = NULL
     colnames(Z_dat_all) = Z_names
-
+    
     dat_WZ = data.frame(W_dat_all, Z_dat_all)
-
-    return(list(dat_WZ = dat_WZ, dat_final = dat_final))
-
+    
+    return(list(dat_WZ = dat_WZ, dat_DTL = dat_DTL, dat_final = dat_final))
+    
 }
 
 #' @title Simulation study for drop-the-losers (DTL) trial.
@@ -256,8 +274,12 @@ dtl_app_sim <- function(nsim, alpha_t,
     
     t_length  = length(interim_t)
 
-    OF_Design = gsDesign(k = t_length, test.type=1, sfu="OF", alpha = alpha_t, timing = interim_t)
-    interim_c = OF_Design$upper$bound
+    if (t_length > 1){
+        OF_Design = gsDesign(k = t_length, test.type=1, sfu="OF", alpha = alpha_t, timing = interim_t)
+        interim_c = OF_Design$upper$bound
+    } else if (t_length == 1){
+        interim_c = qnorm(1 - alpha_t)
+    }
 
     rst_all = NULL
     for (i in 1:nsim){

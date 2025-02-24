@@ -47,7 +47,8 @@ can be uniquely identified given q and gamma)}
 A list including (1) a data frame of response rates of low dose and
 high dose W_1, W_2 and the log-rank test statistics Z_jk at kth interim
 analysis if the jth arm is selected at DTL look; (2) data frames of
-simulated data at interim or final analyses.
+simulated data at DTL look; (3) data frames of simulated data at
+interim or final analyses.
 }
 \description{
 Simulate a single trial based on the DTL design
