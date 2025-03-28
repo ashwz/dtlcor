@@ -24,6 +24,7 @@
 #' significance level alpht_s given all combinations of q_seq and gamma_seq.
 #' 
 #' @examples
+#' \dontrun{
 #' # Inputs
 #' n         = 80    
 #' N         = 152   
@@ -37,6 +38,7 @@
 #' 
 #' # Use theoretical upper bound 
 #' dtl_app_get_alpha_t(n, N, q_seq, gamma_seq, alpha, fix_rho = NULL, delta)
+#' }
 #' 
 #' @export
 dtl_app_get_alpha_t = function(n, N, q_seq, gamma_seq, alpha, fix_rho = NULL, delta){
@@ -104,6 +106,7 @@ dtl_app_get_alpha_t = function(n, N, q_seq, gamma_seq, alpha, fix_rho = NULL, de
 #' and gamma_seq.
 #' 
 #' @examples
+#' \dontrun{
 #' # Inputs
 #' set.seed(1000)
 #' nsim      = 1000
@@ -121,6 +124,7 @@ dtl_app_get_alpha_t = function(n, N, q_seq, gamma_seq, alpha, fix_rho = NULL, de
 #' # Use theoretical upper bound 
 #' dtl_app_get_alpha_t_sim(nsim, n, N, q_seq, gamma_seq, alpha, 
 #'                         fix_rho = NULL, delta = delta)
+#' }
 #' 
 #' @export
 dtl_app_get_alpha_t_sim = function(nsim, n, N, q_seq, gamma_seq, alpha, fix_rho = NULL, 
@@ -230,6 +234,7 @@ get_f0 <- function(mPFS, q, gamma, t){
 #' interim or final analyses.
 #' 
 #' @examples
+#' \dontrun{
 #' # Inputs
 #' set.seed(1000)
 #' D           = 162
@@ -245,6 +250,7 @@ get_f0 <- function(mPFS, q, gamma, t){
 #' 
 #' # Run function
 #' dtl_app_sim_single(D, N, n, mPFS, q, gamma, drop_rate, enroll, interim_t, delta = delta)
+#' }
 #'                   
 #' @export
 dtl_app_sim_single <- function(D, N, n, mPFS, q, gamma, drop_rate, enroll, interim_t, 
@@ -448,9 +454,10 @@ dtl_app_ana <- function(dat_all, interim_t, interim_c){
 #' the probability of rejecting H_2 only: rej_2.
 #' 
 #' @examples
+#' \dontrun{
 #' # Inputs
 #' set.seed(1000)
-#' nsim        = 1
+#' nsim        = 1000
 #' alpha_t     = 0.018
 #' D           = 162
 #' N           = 152  
@@ -472,6 +479,7 @@ dtl_app_ana <- function(dat_all, interim_t, interim_c){
 #' # Power
 #' dtl_app_sim(nsim, alpha_t, D, N, n, mPFS, q, gamma, drop_rate, enroll, 
 #'             interim_t, delta = delta)
+#' }
 #' 
 #' @export
 dtl_app_sim <- function(nsim, alpha_t,

@@ -8,7 +8,9 @@
 #' @param delta Least difference to decide superiority of arm 2 (high dose)
 #' 
 #' @examples
+#' \dontrun{
 #' sel_g_func_default(W_2 = 0.5, W_1 = 0.3, delta = 0.05)
+#' }
 #' 
 #' @export
 sel_g_func_default = function(W_2, W_1, delta){
@@ -29,7 +31,9 @@ sel_g_func_default = function(W_2, W_1, delta){
 #' @return Data frame of the simulated test statistics
 #' 
 #' @examples
-#' dtl_sim_stat(nsim = 10, n = 80, q = 0.3, t = c(0.3, 1), rho = c(0.5, 0.3))
+#' \dontrun{
+#' dtl_sim_stat(nsim = 1000, n = 80, q = 0.3, t = c(0.3, 1), rho = c(0.5, 0.3))
+#' }
 #' 
 #' @export
 dtl_sim_stat = function(nsim, n, q, t, rho){
@@ -84,11 +88,13 @@ dtl_sim_stat = function(nsim, n, q, t, rho){
 #' @return Theoretical FWER alpha
 #' 
 #' @examples
+#' \dontrun{
 #' # Without interim analysis
 #' dtl_tier_the(n = 80, t = 1, rho = 0.4, q = 0.3, alpha_s = 0.025, delta = 0.05)
 #' 
 #' # With interim analysis
 #' dtl_tier_the(n = 80, t = c(0.5, 1), rho = c(0.4, 0.2), q = 0.3, alpha_s = 0.025, delta = 0.05)
+#' }
 #' 
 #' @export
 dtl_tier_the <- function(n, t, rho, q, alpha_s, delta){
@@ -163,7 +169,7 @@ dtl_get_tier = function(data_stat, g, t, alpha_s){
             mutate(case_when(g==2 ~ t(t(data_stat[2+(1:length(t))*2]) > c),
                              g==1 ~ t(t(data_stat[1+(1:length(t))*2]) > c), 
                              g==0 ~ FALSE)) %>%
-            select(-(1:(2+2*length(t)))) %>% 
+            dplyr::select(-(1:(2+2*length(t)))) %>% 
             mutate(sum_all = rowSums(across(everything())) > 0) %>%
             dplyr::select(sum_all)
     ) / nrow(data_stat)
@@ -192,13 +198,15 @@ dtl_get_tier = function(data_stat, g, t, alpha_s){
 #' @return Simulated FWER alpha
 #' 
 #' @examples
+#' \dontrun{
 #' # Without interim analysis
-#' dtl_tier_sim(nsim = 10, n = 80, t = 1, rho = 0.4, q = 0.3, 
+#' dtl_tier_sim(nsim = 1000, n = 80, t = 1, rho = 0.4, q = 0.3, 
 #'              alpha_s = 0.025, delta = 0.05)
 #' 
 #' # With interim analysis
-#' dtl_tier_sim(nsim = 10, n = 80, t = c(0.5, 1), rho = c(0.4, 0.2), q = 0.3, 
+#' dtl_tier_sim(nsim = 1000, n = 80, t = c(0.5, 1), rho = c(0.4, 0.2), q = 0.3, 
 #'              alpha_s = 0.025, delta = 0.05)
+#' }
 #' 
 #' @export
 dtl_tier_sim = function(nsim, n, t, rho, q, alpha_s, 
@@ -229,8 +237,10 @@ dtl_tier_sim = function(nsim, n, t, rho, q, alpha_s,
 #' @return Significance level alpha_s for the final stage
 #' 
 #' @examples
+#' \dontrun{
 #' # Without interim analysis
 #' dtl_get_alpha_s(n = 80, t = 1, rho = 0.4, q = 0.3, alpha = 0.025, delta = 0.05)
+#' }
 #' 
 #' @export
 dtl_get_alpha_s = function(n, t, rho, q, alpha, delta){
@@ -272,9 +282,11 @@ dtl_get_alpha_s = function(n, t, rho, q, alpha, delta){
 #' @return Significance level alpha_s for the final stage
 #' 
 #' @examples
+#' \dontrun{
 #' # Without interim analysis
-#' dtl_get_alpha_s_sim(nsim = 10, n = 80, t = 1, rho = 0.4, q = 0.3, 
+#' dtl_get_alpha_s_sim(nsim = 1000, n = 80, t = 1, rho = 0.4, q = 0.3, 
 #'                     alpha = 0.025, delta = 0.05)
+#' }
 #' 
 #' @export
 dtl_get_alpha_s_sim = function(nsim, n, t, rho, q, alpha, 
@@ -312,7 +324,9 @@ dtl_get_alpha_s_sim = function(nsim, n, t, rho, q, alpha,
 #' @return Theoretical upper bound of correlation coefficient
 #' 
 #' @examples
+#' \dontrun{
 #' dtl_cor_the_PH_upper_bound(tau_k = 0.4, pi_ar = 0.5, q = 0.3, gamma = 0.2)
+#' }
 #' 
 #' @export
 dtl_cor_the_PH_upper_bound <- function(tau_k, pi_ar = 0.5, q, gamma){
