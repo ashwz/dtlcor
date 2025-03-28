@@ -97,7 +97,7 @@ dtl_app_get_alpha_t = function(n, N, q_seq, gamma_seq, alpha, fix_rho = NULL, de
 #'                   sel_g_func_default(W_2, W_1, delta). Users can define 
 #'                   their own arm-select function. The format of 
 #'                   the function must be function_name(W_2, W_1, ...).
-#' @param ...        Other user specified arguments from sel_g_func.
+#' @param ...        Other arguments from sel_g_func.
 #' 
 #' @return A list of two data frames for numerical minimum significance level 
 #' alpha_t and significance level alpht_s given all combinations of q_seq 
@@ -221,7 +221,7 @@ get_f0 <- function(mPFS, q, gamma, t){
 #'                   sel_g_func_default(W_2, W_1, delta). Users can define 
 #'                   their own arm-select function. The format of 
 #'                   the function must be function_name(W_2, W_1, ...).
-#' @param ...        Other user specified arguments from sel_g_func.
+#' @param ...        Other arguments from sel_g_func.
 #'              
 #' @return A list including (1) a data frame of response rates of low dose and 
 #' high dose W_1, W_2 and the log-rank test statistics Z_jk at kth interim 
@@ -437,7 +437,7 @@ dtl_app_ana <- function(dat_all, interim_t, interim_c){
 #'                   sel_g_func_default(W_2, W_1, delta). Users can define 
 #'                   their own arm-select function. The format of 
 #'                   the function must be function_name(W_2, W_1, ...).
-#' @param ...        Other user specified arguments from sel_g_func.
+#' @param ...        Other arguments from sel_g_func.
 #'                  
 #' @return A one row data frame of simulation results, including the parameter
 #' settings, the O'Brien-Fleming boundaries for interim and final analyses: 

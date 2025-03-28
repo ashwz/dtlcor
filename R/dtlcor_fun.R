@@ -187,7 +187,7 @@ dtl_get_tier = function(data_stat, g, t, alpha_s){
 #'                   sel_g_func_default(W_2, W_1, delta). Users can define 
 #'                   their own arm-select function. The format of 
 #'                   the function must be function_name(W_2, W_1, ...).
-#' @param ...        Other user specified arguments from sel_g_func.
+#' @param ...        Other arguments from sel_g_func.
 #' 
 #' @return Simulated FWER alpha
 #' 
@@ -267,7 +267,7 @@ dtl_get_alpha_s = function(n, t, rho, q, alpha, delta){
 #'                   sel_g_func_default(W_2, W_1, delta). Users can define 
 #'                   their own arm-select function. The format of 
 #'                   the function must be function_name(W_2, W_1, ...).
-#' @param ...        Other user specified arguments from sel_g_func.
+#' @param ...        Other arguments from sel_g_func.
 #'
 #' @return Significance level alpha_s for the final stage
 #' 
