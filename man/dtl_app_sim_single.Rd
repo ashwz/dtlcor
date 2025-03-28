@@ -11,37 +11,43 @@ dtl_app_sim_single(
   mPFS,
   q,
   gamma,
-  delta,
   drop_rate,
   enroll,
-  interim_t
+  interim_t,
+  sel_g_func = sel_g_func_default,
+  ...
 )
 }
 \arguments{
-\item{D}{Total number of events}
+\item{D}{Total number of events.}
 
 \item{N}{Total number of patients in both selected and control arms
-at final analysis}
+at final analysis.}
 
-\item{n}{Number of patients per treatment arm at the DTL look}
+\item{n}{Number of patients per treatment arm at the DTL look.}
 
 \item{mPFS}{A 3-entry vector of median progression-free survival times
 for control, low dose and high dose arms (assume
 exponential time-to-event outcome for all arms and the
 conditional distribution for responders and non-responders
-can be uniquely identified given q and gamma)}
+can be uniquely identified given q and gamma).}
 
-\item{q}{A 3-entry vector of response rates under the null}
+\item{q}{A 3-entry vector of response rates under the null.}
 
-\item{gamma}{Hazards ratio of responders and non-responders}
+\item{gamma}{Hazards ratio of responders and non-responders.}
 
-\item{delta}{Least difference to decide superiority of high dose}
+\item{drop_rate}{Annual drop-out rate.}
 
-\item{drop_rate}{Drop-out rate}
+\item{enroll}{Annual Enrollment rate.}
 
-\item{enroll}{Enrollment rate}
+\item{interim_t}{A vector of information fractions of final stage.}
 
-\item{interim_t}{A vector of information fractions of final stage}
+\item{sel_g_func}{Arm-select function. The default function is
+sel_g_func_default(W_2, W_1, delta). Users can define
+their own arm-select function. The format of
+the function must be function_name(W_2, W_1, ...).}
+
+\item{...}{Other user specified arguments from sel_g_func.}
 }
 \value{
 A list including (1) a data frame of response rates of low dose and
@@ -52,4 +58,22 @@ interim or final analyses.
 }
 \description{
 Simulate a single trial based on the DTL design
+}
+\examples{
+# Inputs
+set.seed(1000)
+D           = 162
+N           = 152  
+n           = 80    
+mPFS        = c(180, 276, 300)
+q           = c(0.2, 0.4, 0.5)
+gamma       = 0.15
+drop_rate   = 0.05
+enroll      = 20 * 12
+interim_t   = c(0.5, 1)
+delta       = 0.05  
+
+# Run function
+dtl_app_sim_single(D, N, n, mPFS, q, gamma, drop_rate, enroll, interim_t, delta = delta)
+                  
 }

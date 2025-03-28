@@ -24,3 +24,7 @@ Theoretical upper bound of correlation coefficient
 \description{
 Get theoretical upper bound of correlation coefficient
 }
+\examples{
+dtl_cor_the_PH_upper_bound(tau_k = 0.4, pi_ar = 0.5, q = 0.3, gamma = 0.2)
+
+}

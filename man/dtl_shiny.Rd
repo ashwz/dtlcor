@@ -25,3 +25,8 @@ significance level are shown.
 \description{
 Interactive shiny app of drop-the-losers (DTL) design
 }
+\examples{
+# run dtl_shiny()
+
+
+}

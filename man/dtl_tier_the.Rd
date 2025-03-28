@@ -5,11 +5,9 @@
 \title{Theoretical family-wise type I error rate (FWER) given a fixed
 correlation coefficient under drop-the-losers (DTL) design}
 \usage{
-dtl_tier_the(delta, n, t, rho, q, alpha_s)
+dtl_tier_the(n, t, rho, q, alpha_s, delta)
 }
 \arguments{
-\item{delta}{Least difference to decide superiority of high dose}
-
 \item{n}{Sample size per arm at DTL look}
 
 \item{t}{A vector of information fraction of final stage}
@@ -19,10 +17,20 @@ dtl_tier_the(delta, n, t, rho, q, alpha_s)
 \item{q}{Response rate under the null}
 
 \item{alpha_s}{Significance level for the final stage}
+
+\item{delta}{Least difference to decide superiority of high dose}
 }
 \value{
 Theoretical FWER alpha
 }
 \description{
 Get the theoretical FWER alpha given fixed correlation coefficient
+}
+\examples{
+# Without interim analysis
+dtl_tier_the(n = 80, t = 1, rho = 0.4, q = 0.3, alpha_s = 0.025, delta = 0.05)
+
+# With interim analysis
+dtl_tier_the(n = 80, t = c(0.5, 1), rho = c(0.4, 0.2), q = 0.3, alpha_s = 0.025, delta = 0.05)
+
 }

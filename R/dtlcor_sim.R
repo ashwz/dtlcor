@@ -7,14 +7,14 @@
 #' hazard ratio of responders and non-responders gamma given a pre-specified 
 #' FWER alpha
 #'
-#' @param n          Number of patients per treatment arm at the DTL look
+#' @param n          Number of patients per treatment arm at the DTL look.
 #' @param N          Total number of patients in both selected and control arms 
-#'                   at final analysis 
-#' @param delta      Least difference to decide superiority of high dose
-#' @param q_seq      A vector of response rates under the null (can be 95% CI)
+#'                   at final analysis.
+#' @param delta      Least difference to decide superiority of high dose.
+#' @param q_seq      A vector of response rates under the null (can be 95% CI).
 #' @param gamma_seq  A vector of hazards ratios of responders and non-responders
-#'                   (can be 95% CI)
-#' @param alpha      A pre-specified FWER
+#'                   (can be 95% CI).
+#' @param alpha      A pre-specified FWER.
 #' @param fix_rho    Use fixed correlation coefficient or use theoretical upper
 #'                   bound to get alpha_t. If = NULL, then it uses upper bound;
 #'                   else if = real number between 0 and 1, then it use such 
@@ -23,8 +23,25 @@
 #' @return A list of two data frames for minimum significance level alpha_t and 
 #' significance level alpht_s given all combinations of q_seq and gamma_seq.
 #' 
+#' @examples
+#' # Inputs
+#' n         = 80    
+#' N         = 152   
+#' q_seq     = seq(0.19, 0.32, 0.01) 
+#' gamma_seq = seq(0.14, 0.34, 0.01) 
+#' alpha     = 0.025
+#' delta     = 0.05  
+#' 
+#' # Use fixed correlation coefficient
+#' dtl_app_get_alpha_t(n, N, q_seq, gamma_seq, alpha, fix_rho = 1, delta)
+#' 
+#' # Use theoretical upper bound 
+#' dtl_app_get_alpha_t(n, N, q_seq, gamma_seq, alpha, fix_rho = NULL, delta)
+#' 
 #' @export
-dtl_app_get_alpha_t = function(n, N, delta, q_seq, gamma_seq, alpha, fix_rho = NULL){
+dtl_app_get_alpha_t = function(n, N, q_seq, gamma_seq, alpha, fix_rho = NULL, delta){
+    
+    alpha_s = NULL
     
     # sample size calculation (naive and ignoring correlation)
     seq_all = expand.grid(q_seq, gamma_seq)
@@ -42,7 +59,7 @@ dtl_app_get_alpha_t = function(n, N, delta, q_seq, gamma_seq, alpha, fix_rho = N
                                              q     = q_s, 
                                              gamma = gamma_s)
         }
-        alpha_s  = dtl_get_alpha_s(delta, n, 1, rho, q_s, alpha) # no interim t = 1
+        alpha_s  = dtl_get_alpha_s(n, 1, rho, q_s, alpha, delta) # no interim t = 1
         data.frame(q_s, gamma_s, rho, alpha_s)
     })
     rst_alpha_s = data.frame(t(sapply(1:length(alpha_s_all), function(x){as.numeric(alpha_s_all[[x]])})))
@@ -56,53 +73,187 @@ dtl_app_get_alpha_t = function(n, N, delta, q_seq, gamma_seq, alpha, fix_rho = N
     
 }
 
+#' @title Numerical minimum significance level for the final stage under 
+#' drop-the-losers (DTL) design
+#' 
+#' @description Get numerical minimum significance level alpha_t (minimum of alpha_s) 
+#' for the final analysis considering the ranges of response rate q and 
+#' hazard ratio of responders and non-responders gamma given a pre-specified 
+#' FWER alpha
+#'
+#' @param nsim       Number of replicates.
+#' @param n          Number of patients per treatment arm at the DTL look
+#' @param N          Total number of patients in both selected and control arms 
+#'                   at final analysis.
+#' @param q_seq      A vector of response rates under the null (can be 95% CI).
+#' @param gamma_seq  A vector of hazards ratios of responders and non-responders
+#'                   (can be 95% CI).
+#' @param alpha      A pre-specified FWER.
+#' @param fix_rho    Use fixed correlation coefficient or use theoretical upper
+#'                   bound to get alpha_t. If = NULL, then it uses upper bound;
+#'                   else if = real number between 0 and 1, then it use such 
+#'                   number as fixed correlation coefficient.
+#' @param sel_g_func Arm-select function. The default function is 
+#'                   sel_g_func_default(W_2, W_1, delta). Users can define 
+#'                   their own arm-select function. The format of 
+#'                   the function must be function_name(W_2, W_1, ...).
+#' @param ...        Other user specified arguments from sel_g_func.
+#' 
+#' @return A list of two data frames for numerical minimum significance level 
+#' alpha_t and significance level alpht_s given all combinations of q_seq 
+#' and gamma_seq.
+#' 
+#' @examples
+#' # Inputs
+#' set.seed(1000)
+#' nsim      = 1000
+#' n         = 80    
+#' N         = 152   
+#' q_seq     = seq(0.19, 0.32, 0.01) 
+#' gamma_seq = seq(0.14, 0.34, 0.01) 
+#' alpha     = 0.025
+#' delta     = 0.05  
+#' 
+#' # Use fixed correlation coefficient
+#' dtl_app_get_alpha_t_sim(nsim, n, N, q_seq, gamma_seq, alpha, 
+#'                         fix_rho = 1, delta = delta)
+#' 
+#' # Use theoretical upper bound 
+#' dtl_app_get_alpha_t_sim(nsim, n, N, q_seq, gamma_seq, alpha, 
+#'                         fix_rho = NULL, delta = delta)
+#' 
+#' @export
+dtl_app_get_alpha_t_sim = function(nsim, n, N, q_seq, gamma_seq, alpha, fix_rho = NULL, 
+                                   sel_g_func = sel_g_func_default, ...){
+    
+    alpha_s = NULL
+    
+    # sample size calculation (naive and ignoring correlation)
+    seq_all = expand.grid(q_seq, gamma_seq)
+    
+    alpha_s_all = apply(seq_all, 1, function(x){
+        q_s     = x[1]
+        gamma_s = x[2]
+        
+        # calculate rho
+        if (!is.null(fix_rho)){
+            rho = fix_rho
+        } else{
+            rho = dtl_cor_the_PH_upper_bound(tau_k = n / N,
+                                             pi_ar = 0.5,
+                                             q     = q_s,
+                                             gamma = gamma_s)
+        }
+        alpha_s  = dtl_get_alpha_s_sim(nsim, n, 1, rho, q_s, alpha, sel_g_func, ...) # no interim t = 1
+        c(q_s, gamma_s, rho, alpha_s)
+    })
+    
+    rst_alpha_s = data.frame(t(alpha_s_all))
+    colnames(rst_alpha_s) = c("q", "gamma", "rho", "alpha_s")
+    
+    rst_alpha_t = unique(rst_alpha_s %>%
+                             filter(alpha_s == min(rst_alpha_s$alpha_s)) %>%
+                             rename_with(~"alpha_t", "alpha_s"))
+    
+    list(rst_alpha_t = rst_alpha_t, rst_alpha_s = rst_alpha_s)
+    
+}
+
+# get survival function of non-responder
+get_S0 = function(mPFS, q, gamma, t){
+    
+    if (length(mPFS) == 1 & length(q) == 1){
+        
+        sapply(t, function(x){
+            S = 1 - pexp(x, log(2) / mPFS)
+            
+            solve_S0 = function(y){
+                q*y^gamma + (1-q)*y - S
+            }
+            
+            uniroot(solve_S0, interval = c(0, 1), tol = 10^(-6))$root
+        })
+        
+    } else if (length(t) == length(mPFS) & length(mPFS) == length(q)){
+        
+        mapply(function(x, y, z){
+            S = 1 - pexp(x, log(2) / y)
+            
+            solve_S0 = function(y){
+                z*y^gamma + (1-z)*y - S
+            }
+            
+            uniroot(solve_S0, interval = c(0, 1), tol = 10^(-6))$root
+        }, x = t, y = mPFS, z = q)
+        
+    } else{
+        stop("Dimensions of mPFS, q, t are not consistent.")
+    }
+    
+}
+
+# get density function of non-responder
+get_f0 <- function(mPFS, q, gamma, t){
+    S0 = get_S0(mPFS, q, gamma, t)
+    f0 = dexp(t, log(2) / mPFS) / (q*gamma*S0^(gamma-1) + (1-q))
+    f0
+}
 
 #' @title Simulate a single drop-the-losers (DTL) trial.
 #' 
 #' @description Simulate a single trial based on the DTL design
 #'
-#' @param D          Total number of events
+#' @param D          Total number of events.
 #' @param N          Total number of patients in both selected and control arms 
-#'                   at final analysis 
-#' @param n          Number of patients per treatment arm at the DTL look
+#'                   at final analysis.
+#' @param n          Number of patients per treatment arm at the DTL look.
 #' @param mPFS       A 3-entry vector of median progression-free survival times
 #'                   for control, low dose and high dose arms (assume 
 #'                   exponential time-to-event outcome for all arms and the 
 #'                   conditional distribution for responders and non-responders
-#'                   can be uniquely identified given q and gamma)
-#' @param q          A 3-entry vector of response rates under the null
-#' @param gamma      Hazards ratio of responders and non-responders
-#' @param delta      Least difference to decide superiority of high dose
-#' @param drop_rate  Drop-out rate
-#' @param enroll     Enrollment rate
-#' @param interim_t  A vector of information fractions of final stage
+#'                   can be uniquely identified given q and gamma).
+#' @param q          A 3-entry vector of response rates under the null.
+#' @param gamma      Hazards ratio of responders and non-responders.
+#' @param drop_rate  Annual drop-out rate.
+#' @param enroll     Annual Enrollment rate.
+#' @param interim_t  A vector of information fractions of final stage.
+#' @param sel_g_func Arm-select function. The default function is 
+#'                   sel_g_func_default(W_2, W_1, delta). Users can define 
+#'                   their own arm-select function. The format of 
+#'                   the function must be function_name(W_2, W_1, ...).
+#' @param ...        Other user specified arguments from sel_g_func.
 #'              
 #' @return A list including (1) a data frame of response rates of low dose and 
 #' high dose W_1, W_2 and the log-rank test statistics Z_jk at kth interim 
 #' analysis if the jth arm is selected at DTL look; (2) data frames of 
 #' simulated data at DTL look; (3) data frames of simulated data at 
 #' interim or final analyses.
+#' 
+#' @examples
+#' # Inputs
+#' set.seed(1000)
+#' D           = 162
+#' N           = 152  
+#' n           = 80    
+#' mPFS        = c(180, 276, 300)
+#' q           = c(0.2, 0.4, 0.5)
+#' gamma       = 0.15
+#' drop_rate   = 0.05
+#' enroll      = 20 * 12
+#' interim_t   = c(0.5, 1)
+#' delta       = 0.05  
+#' 
+#' # Run function
+#' dtl_app_sim_single(D, N, n, mPFS, q, gamma, drop_rate, enroll, interim_t, delta = delta)
 #'                   
 #' @export
-dtl_app_sim_single <- function(D, N, n, mPFS, q, gamma, delta, drop_rate, enroll, interim_t){
+dtl_app_sim_single <- function(D, N, n, mPFS, q, gamma, drop_rate, enroll, interim_t, 
+                               sel_g_func = sel_g_func_default, ...){
     
-    # get survival function of non-responder
-    get_S0 = function(mPFS, q, gamma, t){
-        solve_S0 = function(x){
-            S = 1 - pexp(t, log(2) / mPFS)
-            q*x^gamma + (1-q)*x - S
-        }
-        uniroot(solve_S0, interval = c(0, 1), tol = 10^(-6))$root
-    }
+    tt     = NULL
+    censor = NULL
     
-    # get density function of non-responder
-    get_f0 <- function(mPFS, q, gamma, t){
-        S0 = get_S0(mPFS, q, gamma, t)
-        f0 = dexp(t, log(2) / mPFS) / (q*gamma*S0^(gamma-1) + (1-q))
-        f0
-    }
-    
-    accr_time = N / enroll # day per arm
+    accr_time = N / enroll * 365.25 # day per arm
     
     q_rep    = rep(q, each = N)
     mPFS_rep = rep(mPFS, each = N)
@@ -113,9 +264,7 @@ dtl_app_sim_single <- function(D, N, n, mPFS, q, gamma, delta, drop_rate, enroll
     
     Eve_Time = rexp(3*N, log(2) / mPFS_rep)
     
-    f0       = apply(cbind(mPFS_rep, q_rep, Eve_Time), 1, function(x){
-        get_f0(x[1], x[2], gamma, x[3])
-    })
+    f0       = get_f0(mPFS_rep, q_rep, gamma, Eve_Time)
     q_t      = 1 - (1-q_rep)*f0 / dexp(Eve_Time, log(2)/mPFS_rep)
     X        = rbinom(3*N, 1, q_t)
     
@@ -156,10 +305,17 @@ dtl_app_sim_single <- function(D, N, n, mPFS, q, gamma, delta, drop_rate, enroll
     W_dat_all = data.frame(rbind(rst_W$W))
     colnames(W_dat_all) = W_names
     
-    if (W_dat_all$W_2 - W_dat_all$W_1 - delta <= 0){
-        dat_final_temp_2 = dat_final_temp %>% filter(arm != 2)
-    } else {
+    arm_sel = sel_g_func(W_dat_all[2], W_1 = W_dat_all[1], ...)
+    
+    if (arm_sel == 2){
         dat_final_temp_2 = dat_final_temp %>% filter(arm != 1)
+        
+    } else if (arm_sel == 1){
+        dat_final_temp_2 = dat_final_temp %>% filter(arm != 2)
+        
+    } else if (arm_sel == 0){ # stop for futility
+        return(list(dat_WZ = W_dat_all, dat_DTL = dat_DTL, dat_final = NULL))
+        
     }
     
     # Final stage
@@ -209,41 +365,26 @@ dtl_app_sim_single <- function(D, N, n, mPFS, q, gamma, delta, drop_rate, enroll
     
 }
 
-#' @title Simulation study for drop-the-losers (DTL) trial.
-#' 
-#' @description Simulation study for a trial based on the DTL design
-#'
-#' @param nsim       Number of replicates
-#' @param alpha_t    significance level for the final stage (recommend to 
-#'                   use minimum significance level alpha_t to control 
-#'                   family-wise type I error rate)
-#' @param D          Total number of events
-#' @param N          Total number of patients in both selected and control arms 
-#'                   at final analysis 
-#' @param n          Number of patients per treatment arm at the DTL look
-#' @param mPFS       A 3-entry vector of median progression-free survival times
-#'                   for control, low dose and high dose arms 
-#' @param q          A 3-entry vector of response rates under the null
-#' @param gamma      Hazards ratio of responders and non-responders
-#' @param delta      Least difference to decide superiority of high dose
-#' @param drop_rate  Drop-out rate
-#' @param enroll     Enrollment rate
-#' @param interim_t  A vector of information fractions of final stage
-#'                  
-#' @return A one row data frame of simulation results, including the parameter
-#' settings, the O'Brien-Fleming boundaries for interim and final analyses: 
-#' c.1, c.2, the overall censoring rate: cen_rate, the mean study duration: dur,
-#' the probability of high dose is better than low dose: prob_21, the probability
-#' of rejecting H_1 or H_2: rej_12, the probability of rejecting H_1 only: rej_1, 
-#' the probability of rejecting H_2 only: rej_2.
-#' 
-#' @export
-dtl_app_sim <- function(nsim, alpha_t,
-                        D, N, n, mPFS, q, gamma, delta,
-                        drop_rate, enroll, interim_t){
-
-    # analysis data
-    dtl_app_ana <- function(dat_all, interim_t, interim_c){
+dtl_app_ana <- function(dat_all, interim_t, interim_c){
+    
+    if (is.null(dat_all$dat_final)){
+        
+        dat_DTL = dat_all$dat_DTL
+        
+        arm_sel  = 0
+        rej      = 0
+        
+        cen_rate = mean(dat_DTL$censor!=0)
+        cen_1    = mean(dat_DTL$censor==1) 
+        cen_2    = mean(dat_DTL$censor==2)
+        dur      = dat_DTL$tt_end[1] - min(dat_DTL$tt_accr)
+        
+        rst = data.frame(t = rbind(interim_t), c = rbind(interim_c), arm_sel, rej, cen_rate, cen_1, cen_2, dur)
+        rownames(rst) = NULL
+        
+        return(rst)
+        
+    } else {
         
         t_length     = length(interim_t)
         dat_WZ       = dat_all$dat_WZ
@@ -254,50 +395,122 @@ dtl_app_sim <- function(nsim, alpha_t,
                                which(dat_WZ[1, 2 + 2*(1:t_length)] > interim_c)[1])
         stop_interim = if_else(is.na(stop_interim), length(dat_all$dat_final), stop_interim)
         
-        
-        I_21  = 2 %in% dat_final$arm
-        rej   = case_when(1 %in% dat_final$arm & !all(dat_WZ[1, 1 + 2*(1:t_length)] <= interim_c) ~ 1,
-                          2 %in% dat_final$arm & !all(dat_WZ[1, 2 + 2*(1:t_length)] <= interim_c) ~ 2,
-                          .default = 0)
+        arm_sel = if_else(2 %in% dat_final$arm, 2, 1)
+        rej     = case_when(1 %in% dat_final$arm & !all(dat_WZ[1, 1 + 2*(1:t_length)] <= interim_c) ~ 1,
+                            2 %in% dat_final$arm & !all(dat_WZ[1, 2 + 2*(1:t_length)] <= interim_c) ~ 2,
+                            .default = 0)
         
         cen_rate  = mean(dat_final$censor!=0)
         cen_1     = mean(dat_final$censor==1)
         cen_2     = mean(dat_final$censor==2)
         dur       = dat_all$dat_final[[stop_interim]]$tt_end[1] - min(dat_final$tt_accr)
         
-        rst = data.frame(t = rbind(interim_t), c = rbind(interim_c), I_21, rej, cen_rate, cen_1, cen_2, dur)
+        rst = data.frame(t = rbind(interim_t), c = rbind(interim_c), arm_sel, rej, cen_rate, cen_1, cen_2, dur)
         rownames(rst) = NULL
-        
-        return(rst)
         
     }
     
-    t_length  = length(interim_t)
+    return(rst)
+    
+}
 
+#' @title Simulation study for drop-the-losers (DTL) trial.
+#' 
+#' @description Simulation study for a trial based on the DTL design
+#'
+#' @param nsim       Number of replicates.
+#' @param alpha_t    significance level for the final stage (recommend to 
+#'                   use minimum significance level alpha_t to control 
+#'                   family-wise type I error rate).
+#' @param D          Total number of events.
+#' @param N          Total number of patients in both selected and control arms 
+#'                   at final analysis. 
+#' @param n          Number of patients per treatment arm at the DTL look.
+#' @param mPFS       A 3-entry vector of median progression-free survival times
+#'                   (in days) for control, low dose and high dose arms. 
+#' @param q          A 3-entry vector of response rates under the null.
+#' @param gamma      Hazards ratio of responders and non-responders.
+#' @param drop_rate  Annual drop-out rate.
+#' @param enroll     Annual enrollment rate.
+#' @param interim_t  A vector of information fractions of final stage.
+#' @param sel_g_func Arm-select function. The default function is 
+#'                   sel_g_func_default(W_2, W_1, delta). Users can define 
+#'                   their own arm-select function. The format of 
+#'                   the function must be function_name(W_2, W_1, ...).
+#' @param ...        Other user specified arguments from sel_g_func.
+#'                  
+#' @return A one row data frame of simulation results, including the parameter
+#' settings, the O'Brien-Fleming boundaries for interim and final analyses: 
+#' c.1, c.2, the overall censoring rate: cen_rate, the mean study duration: dur,
+#' the probability of selecting high dose / low dose / no dose: prob_sel_2, 
+#' prob_sel_1, prob_sel_0, the probability of rejecting 
+#' H_1 or H_2: rej_12, the probability of rejecting H_1 only: rej_1, 
+#' the probability of rejecting H_2 only: rej_2.
+#' 
+#' @examples
+#' # Inputs
+#' set.seed(1000)
+#' nsim        = 1
+#' alpha_t     = 0.018
+#' D           = 162
+#' N           = 152  
+#' n           = 80    
+#' mPFS        = c(180, 276, 300)
+#' q           = c(0.2, 0.4, 0.5)
+#' mPFS_null   = rep(180, 3)
+#' q_null      = rep(0.2, 3)
+#' gamma       = 0.15
+#' drop_rate   = 0.05
+#' enroll      = 20 * 12
+#' interim_t   = c(0.5, 1)
+#' delta       = 0.05  
+#' 
+#' # Type I Error
+#' dtl_app_sim(nsim, alpha_t, D, N, n, mPFS_null, q_null, gamma, drop_rate, 
+#'             enroll, interim_t, delta = delta)
+#' 
+#' # Power
+#' dtl_app_sim(nsim, alpha_t, D, N, n, mPFS, q, gamma, drop_rate, enroll, 
+#'             interim_t, delta = delta)
+#' 
+#' @export
+dtl_app_sim <- function(nsim, alpha_t,
+                        D, N, n, mPFS, q, gamma,
+                        drop_rate, enroll, interim_t, 
+                        sel_g_func = sel_g_func_default, ...){
+    
+    arm_sel = NULL
+    rej     = NULL
+    
+    t_length  = length(interim_t)
+    
     if (t_length > 1){
         OF_Design = gsDesign(k = t_length, test.type=1, sfu="OF", alpha = alpha_t, timing = interim_t)
         interim_c = OF_Design$upper$bound
     } else if (t_length == 1){
         interim_c = qnorm(1 - alpha_t)
     }
-
+    
     rst_all = NULL
     for (i in 1:nsim){
         # simulate data
-        dat_all  = dtl_app_sim_single(D, N, n, mPFS, q, gamma, delta, drop_rate, enroll, interim_t)
-
+        dat_all  = dtl_app_sim_single(D, N, n, mPFS, q, gamma, drop_rate, enroll, interim_t, 
+                                      sel_g_func, ...)
+        
         # analysis data
         rst     = dtl_app_ana(dat_all, interim_t, interim_c)
         rst_all = rbind(rst_all, data.frame(rep = i, rst))
     }
-
+    
     rst_all_wide = rst_all %>%
-        mutate(prob_21 = I_21,
-               rej_12  = (rej == 1 | rej ==2),
-               rej_1   = (rej == 1),
-               rej_2   = (rej == 2)) %>%
-        dplyr::select(!c(rej, I_21))
-
+        mutate(prob_sel_2 = (arm_sel == 2),
+               prob_sel_1 = (arm_sel == 1),
+               prob_sel_0 = (arm_sel == 0),
+               rej_12     = (rej == 1 | rej ==2),
+               rej_1      = (rej == 1),
+               rej_2      = (rej == 2)) %>%
+        dplyr::select(!c(rej, arm_sel))
+    
     rst_dtl = data.frame(mPFS_0      = mPFS[1],
                          mPFS_1      = mPFS[2],
                          mPFS_2      = mPFS[3],
@@ -305,7 +518,6 @@ dtl_app_sim <- function(nsim, alpha_t,
                          q_1         = q[2],
                          q_2         = q[3],
                          gamma       = gamma,
-                         delta       = delta,
                          drop_rate   = drop_rate,
                          enroll      = enroll,
                          D           = D,
@@ -313,7 +525,7 @@ dtl_app_sim <- function(nsim, alpha_t,
                          n           = n,
                          alpha_t     = alpha_t,
                          rbind(apply(rst_all_wide[, -1], 2, mean)))
-
+    
     return(rst_dtl)
 }
 

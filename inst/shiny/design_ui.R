@@ -19,12 +19,12 @@ tab_fwer <- function() {
                  sidebarPanel(
                      textInput("n", "Sample size per arm at DTL Look (n)", 
                                "50, 150, 300"),
-                     textInput("delta", "Least difference to decide superiority of High Dose (Δ)", 
-                               "0, 0.1"),
                      textInput("q", "Null response rate (q)", 
                                "0.3, 0.5, 0.95"),
                      textInput("rho", "Correlation between statistics at DTL look and final analysis (ρ)", 
                                "0, 0.1, 0.2, 0.3, 0.4, 0.5"),
+                     textInput("delta", "Least difference to decide superiority of High Dose (Δ)", 
+                               "0, 0.1"),
                      numericInput("alpha", "Significance level (α)", 0.025),
                  ),
                  mainPanel(
@@ -105,22 +105,22 @@ table_tier = reactive({
     
     alpha_s  = input$alpha
     n        = as.numeric(str_split(input$n,",", simplify = TRUE))
-    delta    = as.numeric(str_split(input$delta,",", simplify = TRUE))
     q        = as.numeric(str_split(input$q,",", simplify = TRUE))
     rho      = as.numeric(str_split(input$rho,",", simplify = TRUE))
+    delta    = as.numeric(str_split(input$delta,",", simplify = TRUE))
     
-    para_all = expand.grid(n, delta, q, rho)
+    para_all = expand.grid(n, q, rho, delta)
     fwer     = rep(NA, nrow(para_all))
     for (i in 1:nrow(para_all)){
         n     = para_all[i, 1]
-        delta = para_all[i, 2]
-        q     = para_all[i, 3]
-        rho   = para_all[i, 4]
+        q     = para_all[i, 2]
+        rho   = para_all[i, 3]
+        delta = para_all[i, 4]
         
-        fwer[i] = dtl_tier_the(delta, n, t = 1, rho, q, alpha_s)
+        fwer[i] = dtl_tier_the(n, t = 1, rho, q, alpha_s, delta)
     }
     rst = data.frame(alpha_s, para_all, fwer)
-    colnames(rst) = c("alpha_s", "n", "delta", "q", "rho", "fwer")
+    colnames(rst) = c("alpha_s", "n", "q", "rho", "delta", "fwer")
     rst
     
 })
@@ -234,7 +234,7 @@ table_alpha = reactive({
         fix_rho = NULL
     } 
     
-    dtl_app_get_alpha_t(n, N, delta, q_seq, gamma_seq, alpha, fix_rho)
+    dtl_app_get_alpha_t(n, N, q_seq, gamma_seq, alpha, fix_rho, delta)
     
 })
 

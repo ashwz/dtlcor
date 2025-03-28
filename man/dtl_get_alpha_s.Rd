@@ -5,11 +5,9 @@
 \title{Significance level given a fixed correlation coefficient for the
 final stage under drop-the-losers (DTL) design}
 \usage{
-dtl_get_alpha_s(delta, n, t, rho, q, alpha)
+dtl_get_alpha_s(n, t, rho, q, alpha, delta)
 }
 \arguments{
-\item{delta}{Least difference to decide superiority of high dose}
-
 \item{n}{Sample size per arm at DTL look}
 
 \item{t}{A vector of information fraction of final stage}
@@ -19,6 +17,8 @@ dtl_get_alpha_s(delta, n, t, rho, q, alpha)
 \item{q}{Response rate under the null}
 
 \item{alpha}{A pre-specified FWER}
+
+\item{delta}{Least difference to decide superiority of high dose}
 }
 \value{
 Significance level alpha_s for the final stage
@@ -27,4 +27,9 @@ Significance level alpha_s for the final stage
 Get significant level alpha_s based on a pre-specified FWER alpha
 given a fixed correlation coefficient for the final stage
 (reverse calculation of dtl_tier_the())
+}
+\examples{
+# Without interim analysis
+dtl_get_alpha_s(n = 80, t = 1, rho = 0.4, q = 0.3, alpha = 0.025, delta = 0.05)
+
 }

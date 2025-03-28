@@ -17,6 +17,10 @@
 #'         non-responders gamma and the resulting minimum or called adjusted 
 #'         significance level are shown.
 #' 
+#' @examples
+#' # run dtl_shiny()
+#' 
+#' 
 #' @export
 dtl_shiny <- function(appname = "shiny") {
 
